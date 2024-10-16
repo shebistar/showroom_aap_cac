@@ -1,16 +1,21 @@
 name: modules
-title: Default Title
+title: Ansible Automation Platform Configuration as Code Challenge
 version: master
 nav:
   - modules/ROOT/nav.adoc
 
 asciidoc:
   attributes:
-    lab_name: "I'm the lab_name var"
+    event_name: "Red Hat Summit Connect Hands-on Day (Darmstadt)"
+    subdomain: aap2-01.sandbox5.opentlc.com
+    subdomain_internal: aap2-01.internal
+    lab_name: "Ansible Automation Platform Configuration as Code Challenge"
     release-version: master
     page-pagination: true
     my_var: "foo"
+    targethost: bastion.aap2-01.sandbox5.opentlc.com
     guid: my-guid
+    ssh_username: devops
     ssh_user: devops
     ssh_password: devops
     ssh_command: ssh someone@example.com

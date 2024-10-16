@@ -1,0 +1,183 @@
+// :icons: font
+= Setting up a Postgres Database for AAP2
+
+icon:clock-o[Duration: 10 Minutes] Duration: 10 minutes
+
+In this module, we will install our own Postgres backend for Containerized AAP2 *without* using our bundled installer.
+
+== Why install our own Postgres?
+
+Given that the installer for Containerized AAP2 supports creating and running a Containerized version of Postgres why are we installing our own? The Containerized AAP2 installer supports a very flexible mix of architectural choices including:
+
+* "All in One": All components Controller, Hub, EDA and Postgres on 1 node
+** This is useful for dev/testing and also for example for a laptop VM
+* All distributed: Every component on its VM
+* Two Tier: Separate Database
+
+[NOTE]
+====
+Not all components need to be installed, for example, if you don't need Hub or EDA, you can omit their configuration/installation. I.e. by commenting out the relevant parts of the installer inventory.
+====
+
+In this module, we will install our version of Postgres to show how the Containerized AAP2 Installer supports this and allows Controller etc to make use of a pre-existing instance of Postgres. This is useful in many scenarios e.g. customer has a dedicated Postgres team or uses Cloud-Based DBaaS (Database as a Service) with a Postgres flavor (in our case this must be Postgres 13 currently).
+
+The Two Tier architecture also provides several advantages:
+
+* Clear separation of concerns
+* Avoid potential I/O issues around Container Volumes
+* Allow for the use of I/O optimized Servers and/or Cloud Instances
+
+
+[NOTE]
+====
+The Red Hat Demo Team who deployed this lab makes use of both optimized instances (IO Optimized via NVMe drivers for example to sustain higher I/O ops) and cloud-based DBaaS. The infrastructure for your lab today used AWS RDS as the database backend for AAP2.
+====
+
+////
+
+TODO: Should I remove all this or are there peices of content worth re-using
+
+for example a complete all in one where everything including post runs on a single host to a completely distributed model, where each component runs on its own BM.
+
+In addition, the installer allows the end-user to supply their own grass instance. This is a flexible option and allows for not only a separation of concerns, but for automation teams to leverage centrally, managed databases by dedicated database teams, but also the optioiNOTEn of using a cloud based DBA, such as RDS.
+
+NOTE: important to understand the support model of using external pass grass, and it's beyond the scope of this lack lab to cover this.
+
+* Databases are often IO bound and separation allows for the use of dedicated instances and IO optimization
+** Cloud Providers for example support both IO-optimized instance types (NVMe drives etc)
+** Cloud Providers also
+
+NOTE: It is beyond the scope of this lab to cover the support implications of externally self hosted or cloud-hosted Postgres.
+
+== Postgres Requirements
+//// 
+
+== How
+
+This lab provides a simple Postgres installer already configured to work in our environment. It simply leverages the following role and collection
+
+* `geerlingguy.postgresql`
+* `community.postgresql`
+
+. Change into the Postgres installer repository directory
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+cd postgres-for-aap2
+----
+
+. Explore the Postgres installer - it is quite simple in its construction
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+tree -L 2
+----
++
+.Sample Output
+[source,texinfo]
+----
+.
+├── ansible.cfg
+├── group_vars
+│   └── aap2_databases.yml
+├── install-postgresql.yml
+├── inventory
+├── README.adoc
+└── requirments.yml
+----
++
+
+. If you like take a moment to explore the repository which is quite simple a little deeper, perhaps the most interesting file being the `group_vars/aap2_databases.yml` primarily used for configuring the `geerlingguy.postgresql` role.
++
+
+[NOTE]
+====
+It is the var file where we set the Postgres password which will be used later by the AAP2 installer. For simplicity, we recommend you do not change it in this lab situation.
+====
+
+. Next let's install the necessary dependencies (role and collection) which have been isolated and versioned in the `requirements.yml` file, via `ansible-galaxy`
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+ansible-galaxy install -r requirments.yml
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+Starting galaxy role install process
+- downloading role 'postgresql', owned by geerlingguy
+- downloading role from https://github.com/geerlingguy/ansible-role-postgresql/archive/3.5.0.tar.gz
+- extracting geerlingguy.postgresql to /home/devops/.ansible/roles/geerlingguy.postgresql
+- geerlingguy.postgresql (3.5.0) was installed successfully
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Downloading https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/artifacts/community-postgresql-3.2.0.tar.gz to /home/devops/.ansible/tmp/ansible-local-436544_pd24uz/tmpsp8y6798/community-postgresql-3.2.0-b6zf4udj
+Installing 'community.postgresql:3.2.0' to '/home/devops/.ansible/collections/ansible_collections/community/postgresql'
+community.postgresql:3.2.0 was installed successfully
+----
+
+. Finally, run the installer playbook which simply acts as a wrapper around the role you just installed.
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+ansible-playbook install-postgresql.yml
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+<TRUNCATED OUTPUT>
+TASK [geerlingguy.postgresql : Ensure PostgreSQL users are present.] *************************************
+changed: [aap2-database] => (item=None)
+changed: [aap2-database]
+
+TASK [geerlingguy.postgresql : Ensure PostgreSQL databases are present.] *********************************
+
+TASK [geerlingguy.postgresql : Ensure PostgreSQL users are configured correctly.] ************************
+ok: [aap2-database] => (item=None)
+ok: [aap2-database]
+
+RUNNING HANDLER [geerlingguy.postgresql : restart postgresql] ********************************************
+[WARNING]: Ignoring "sleep" as it is not used in "systemd"
+changed: [aap2-database]
+
+PLAY RECAP ***********************************************************************************************
+aap2-database              : ok=28   changed=10   unreachable=0    failed=0    skipped=8    rescued=0    ignored=0   
+----
++
+
+[TIP]
+====
+Several of the most common issues we see with remote Postgres installations include:
+
+. Ensuring that Postgres listens on an *external* network interfaces
+. Password authentication is set up correctly
+. Firewalls and Cloud Security Groups are configured
+** In our case we have preconfigured AWS Security Groups and Firewalld
+
+====
++
+
+If you are curious as to the first 2 points, they are configured in the vars in `group_vars/aap2_databases.yml` and then set via the `geerlingguy.postgresql` role.
+
+////
+==== Basic Checklist for broken Postgres Installs
+
+. `[]` Is it running! (`ps -ef`)
+. `[]` Can I access it locally (e.g.) *and* authenticate
+. `[]` Can I access the port, typically 5432, across the network
+
+////
+== Summary
+
+This module is now complete, we now have a running Postgres database we can use with the Containerized AAP2 Installer.
+
+In the next module, we will unpack the AAP2 Containerized Installer and configure our inventory for installation.

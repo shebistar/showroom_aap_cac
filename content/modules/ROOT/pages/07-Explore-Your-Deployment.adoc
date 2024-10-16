@@ -1,0 +1,189 @@
+= Explore and Use Containerized AAP2
+
+We touched on the new Postinstall capability built on top of the `infra.controller_configuration` collection, in this Bonus final we will actually use the simple AAP2 job_template and associated resources. 
+
+== Run the `job_template`
+
+. Log in to your Controller Console as user: `admin` password: `r3dh4t1!`
++
+
+[cols="3,2,2"]
+|===
+|URL |Login |Password
+
+|`http://aap2.{subdomain}:80`
+| `admin`
+| `r3dh4t1!`
+
+|===
++
+
+image::controller_homescreen.png[Lab Topology,align="center",width="100%"]
++
+
+[TIP]
+==== 
+As mentioned earlier the installer has *not* installed valid certificates so your browser will warn you of this. 
+====
+
+. Explore the *Resources* section to validate that the Postinstall feature did indeed create the resources you specified in your `config-as-code/controller` directory.
++
+
+image::controller_dashboard.png[Lab Topology,align="center",width="100%"]
+
+. Now navigate the *Templates* screen and open the *rh1-demo-job-template*
++
+
+image::controller_templates.png[Lab Topology,align="center",width="100%"]
+
++
+
+image::job_template.png[Lab Topology,align="center",width="100%"]
+
+. Launch the *Job Template* via the *Launch* button
+
+== Verify your Job Template ran successfully
+
+. The simple app you just deployed includes an API endpoint `app-frontend:8000/api/resources` - test this via `curl` 
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+curl app-frontend:8000/api/resources | jq
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+<TRUNCATED>
+
+    "source": "Blog",
+    "url": "http://www.cloudassembler.com/"
+  },
+  {
+    "author": "Aditya Patawari, Vikas Aggarwal",
+    "description": "Overview of Ansible in common Cloud Environments",
+    "id": 4,
+    "name": "Ansible 2 Cloud Automation Cookbook",
+    "source": "Book",
+    "url": "https://www.packtpub.com/virtualization-and-cloud/ansible-2-cloud-automation-cookbook"
+  }
+]
+----
+
+== Summary and Bonus Activities
+
+Congratulations you have now completed the lab *but* should you have time to spare then an area to explore would be the actual running container on the `aap2` host giving a foundational overview of how they run and how you can explore their logs etc.
+
+. `ssh` to the `aap2` host
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+ssh aap2
+----
+
+. On the host `app2` you can explore the running Services
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+systemctl list-units --type=service --state=running --user
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+  UNIT                                  LOAD   ACTIVE SUB     DESCRIPTION
+  automation-controller-rsyslog.service loaded active running Podman automation-controller-rsyslog.service
+  automation-controller-task.service    loaded active running Podman automation-controller-task.service
+  automation-controller-web.service     loaded active running Podman automation-controller-web.service
+  automation-eda-api.service            loaded active running Podman automation-eda-api.service
+  automation-eda-daphne.service         loaded active running Podman automation-eda-daphne.service
+  automation-eda-web.service            loaded active running Podman automation-eda-web.service
+  automation-eda-worker-1.service       loaded active running Podman automation-eda-worker-1.service
+  automation-eda-worker-2.service       loaded active running Podman automation-eda-worker-2.service
+  automation-hub-api.service            loaded active running Podman automation-hub-api.service
+  automation-hub-content.service        loaded active running Podman automation-hub-content.service
+  automation-hub-web.service            loaded active running Podman automation-hub-web.service
+  automation-hub-worker-1.service       loaded active running Podman automation-hub-worker-1.service
+  automation-hub-worker-2.service       loaded active running Podman automation-hub-worker-2.service
+  dbus-broker.service                   loaded active running D-Bus User Message Bus
+  receptor.service                      loaded active running Podman receptor.service
+  redis.service                         loaded active running Podman redis.service
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+16 loaded units listed.
+----
+
+. You can explore/list these services with `podman ps`
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+podman ps
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+CONTAINER ID  IMAGE                                                                             COMMAND               CREATED       STATUS          PORTS       NAMES
+558d20985b0e  registry.redhat.io/rhel8/redis-6:latest                                           run-redis             22 hours ago  Up 2 hours ago              redis
+ce1b3f5b1af3  registry.redhat.io/ansible-automation-platform-24/ee-supported-rhel8:latest       /usr/bin/receptor...  22 hours ago  Up 2 hours ago              receptor
+e8174b595959  registry.redhat.io/ansible-automation-platform-24/controller-rhel8:latest         /usr/bin/launch_a...  21 hours ago  Up 2 hours ago              automation-controller-rsyslog
+9527103dc199  registry.redhat.io/ansible-automation-platform-24/controller-rhel8:latest         /usr/bin/launch_a...  21 hours ago  Up 2 hours ago              automation-controller-task
+67550c656f89  registry.redhat.io/ansible-automation-platform-24/controller-rhel8:latest         /usr/bin/launch_a...  21 hours ago  Up 2 hours ago              automation-controller-web
+cdf5c870108b  registry.redhat.io/ansible-automation-platform-24/eda-controller-rhel8:latest     gunicorn --bind 1...  21 hours ago  Up 2 hours ago              automation-eda-api
+ad4658314bf5  registry.redhat.io/ansible-automation-platform-24/eda-controller-rhel8:latest     daphne -b 127.0.0...  21 hours ago  Up 2 hours ago              automation-eda-daphne
+4cb9d1393bc4  registry.redhat.io/ansible-automation-platform-24/eda-controller-ui-rhel8:latest  /bin/sh -c nginx ...  21 hours ago  Up 2 hours ago              automation-eda-web
+1bf7818b5c01  registry.redhat.io/ansible-automation-platform-24/eda-controller-rhel8:latest     aap-eda-manage rq...  21 hours ago  Up 2 hours ago              automation-eda-worker-1
+4fe655d086bf  registry.redhat.io/ansible-automation-platform-24/eda-controller-rhel8:latest     aap-eda-manage rq...  21 hours ago  Up 2 hours ago              automation-eda-worker-2
+e581c53b554c  registry.redhat.io/ansible-automation-platform-24/hub-rhel8:latest                pulp-api              21 hours ago  Up 2 hours ago              automation-hub-api
+fa165ebe3672  registry.redhat.io/ansible-automation-platform-24/hub-rhel8:latest                pulp-content          21 hours ago  Up 2 hours ago              automation-hub-content
+018b41b8c61c  registry.redhat.io/ansible-automation-platform-24/hub-web-rhel8:latest            nginx -g daemon o...  21 hours ago  Up 2 hours ago              automation-hub-web
+68aefbf7b4c6  registry.redhat.io/ansible-automation-platform-24/hub-rhel8:latest                pulp-worker           21 hours ago  Up 2 hours ago              automation-hub-worker-1
+40234e5517c4  registry.redhat.io/ansible-automation-platform-24/hub-rhel8:latest                pulp-worker           21 hours ago  Up 2 hours ago              automation-hub-worker-2
+----
+
+. Examine the logs of a running service (container) with `podman logs <service-name>`
++
+
+[TIP] 
+====
+The Service name is the last field in each row of output from `podman ps` ie the NAMES column
+====
++
+
+[source,sh,role=execute,subs=attributes+]
+----
+podman logs automation-controller-task
+----
++
+
+.Sample Output
+[source,texinfo]
+----
+<TRUNCATED>
+2024-01-17 00:46:57,357 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.analytics.job_lifecycle job-37 running playbook
+2024-01-17 00:46:57,374 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.analytics.job_lifecycle job-37 work unit id received
+2024-01-17 00:46:57,443 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.analytics.job_lifecycle job-37 work unit id assigned
+2024-01-17 00:47:56,421 INFO     [-] awx.analytics.job_lifecycle job-37 stats wrapup finished
+2024-01-17 00:47:56,902 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.main.commands.run_callback_receiver Starting EOF event processing for Job 37
+2024-01-17 00:47:56,905 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.analytics.job_lifecycle job-37 post run
+2024-01-17 00:47:57,082 INFO     [32ce8bef076945d0bfda781d6c79d205] awx.analytics.job_lifecycle job-37 finalize run
+----
+
+. Finally explore the `aap` directory, `tree -L 1` and increment the `-L` flag to look deeper into the directory hierarchy.
+
+== Conclusion
+
+Hopefully, you have gained insight into how to both install and configure, Containerized Ansible Automation Platform 2.
+
+As a final reminder remember that this is currently in TechPreview and subject to change. When it is released it will broaden the deployment choices for AAP2 and combine the advantages of Containerized Deployments with a simple yet versatile installation process.
+
+Enjoy the rest of your Red Hat One and thank you for your time today.

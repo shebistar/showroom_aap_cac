@@ -1,7 +1,7 @@
 ---
 site:
-  title: Showroom Template Demo
-  url: https://redhat-scholars.github.io/course-template
+  title: Ansible Automation Platform Configuration as Code Challenge
+  #url: https://redhat-scholars.github.io/course-template
   start_page: modules::index.adoc
 
 content:
